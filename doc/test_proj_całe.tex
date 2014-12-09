@@ -144,18 +144,39 @@ public class RaceResultsService {
 W drugim teście sprawdzamy czy każdy zarejestrowany klient otrzymuje wiadomość.
 
 \begin{lstlisting}
-public void messageShouldBeSendToAllSubscribedClients() {
-    RaceResultsService raceResults = new RaceResultsService();
-    Client clientA = mock(Client.class);
-    Client clientB = mock(Client.class);
-    Message message = mock(Message.class);
+package rrs;
+
+import static org.testng.Assert.*;
+import org.testng.annotations.*;
+import static org.mockito.Mockito.*;
+
+@Test
+public class RaceResultsServiceTest {
     
-    raceResults.addSubscriber(clientA);
-    raceResults.addSubscriber(clientB);
-    raceResults.send(message);
+    public void subscribedClientShouldReceiveMessage() {
+        RaceResultsService raceResults = new RaceResultsService();
+        Client client = mock(Client.class);
+        Message message = mock(Message.class);
+        
+        raceResults.addSubscriber(client);
+        raceResults.send(message);
+        
+        verify(client).receive(message);
+    }
     
-    verify(clientA).receive(message);
-    verify(clientB).receive(message);
+    public void messageShouldBeSendToAllSubscribedClients() {
+        RaceResultsService raceResults = new RaceResultsService();
+        Client clientA = mock(Client.class);
+        Client clientB = mock(Client.class);
+        Message message = mock(Message.class);
+        
+        raceResults.addSubscriber(clientA);
+        raceResults.addSubscriber(clientB);
+        raceResults.send(message);
+        
+        verify(clientA).receive(message);
+        verify(clientB).receive(message);
+    }
 }
 \end{lstlisting}
 
@@ -166,6 +187,11 @@ Test nie przechodzi ponieważ dana funkcjonalność nie jest zaimplementowana.
 Dopisujemy obsługę wielu klientów i oba testy powinny przejść.
 
 \begin{lstlisting}
+package rrs;
+
+import java.util.ArrayList;
+import java.util.Collection;
+
 public class RaceResultsService {
     private Collection<Client> clients = new ArrayList<Client>();
     
@@ -187,6 +213,11 @@ Ponieważ oba testy korzystają z tych samych obiektów pozornych następuje ref
 mocków do metody wykonywanej przed każdym testem.
 
 \begin{lstlisting}
+package rrs;
+
+import org.testng.annotations.*;
+import static org.mockito.Mockito.*;
+
 @Test
 public class RaceResultsServiceTest {
     private RaceResultsService raceResults;
@@ -224,11 +255,46 @@ public class RaceResultsServiceTest {
 Test ten sprawdza czy osoby które nie są zarejestrowane nie dostają wiadomości.
 
 \begin{lstlisting}
-public void notSubscribedClientShouldNotReceiveMessage() {
-    raceResults.send(message);
+package rrs;
+
+import org.testng.annotations.*;
+import static org.mockito.Mockito.*;
+
+@Test
+public class RaceResultsServiceTest {
+    private RaceResultsService raceResults;
+    private Message message;
+    private Client clientA;
+    private Client clientB;
     
-    verify(clientA, never()).receive(message);
-    verify(clientB, never()).receive(message);
+    @BeforeMethod
+    public void setUp() {
+        raceResults = new RaceResultsService();
+        clientA = mock(Client.class);
+        clientB = mock(Client.class);
+        message = mock(Message.class);
+    }
+    public void subscribedClientShouldReceiveMessage() {
+        raceResults.addSubscriber(clientA);
+        raceResults.send(message);
+        
+        verify(clientA).receive(message);
+    }
+    
+    public void messageShouldBeSendToAllSubscribedClients() {
+        raceResults.addSubscriber(clientA);
+        raceResults.addSubscriber(clientB);
+        raceResults.send(message);
+        
+        verify(clientA).receive(message);
+        verify(clientB).receive(message);
+    }
+    public void notSubscribedClientShouldNotReceiveMessage() {
+        raceResults.send(message);
+        
+        verify(clientA, never()).receive(message);
+        verify(clientB, never()).receive(message);
+    }
 }
 \end{lstlisting}
 
@@ -239,6 +305,11 @@ Ponieważ funkcjonalność ta została automatycznie zaimplementowana test od ra
 Po napisaniu następuje mały refaktor aby posortować metody.
 
 \begin{lstlisting}
+package rrs;
+
+import org.testng.annotations.*;
+import static org.mockito.Mockito.*;
+
 @Test
 public class RaceResultsServiceTest {
     private RaceResultsService raceResults;
@@ -284,13 +355,56 @@ public class RaceResultsServiceTest {
 Sprawdzamy czy klient zarejestrowany kilkukrotnie nie dostaje więcej niż jednej wiadomości.
 
 \begin{lstlisting}
-// client subscribed more then once
-public void shouldSendOnlyOneMessageToMultiSubscriber() {
-    raceResults.addSubscriber(clientA);
-    raceResults.addSubscriber(clientA);
-    raceResults.send(message);
+package rrs;
+
+import org.testng.annotations.*;
+import static org.mockito.Mockito.*;
+
+@Test
+public class RaceResultsServiceTest {
+    private RaceResultsService raceResults;
+    private Message message;
+    private Client clientA;
+    private Client clientB;
     
-    verify(clientA).receive(message);
+    @BeforeMethod
+    public void setUp() {
+        raceResults = new RaceResultsService();
+        clientA = mock(Client.class);
+        clientB = mock(Client.class);
+        message = mock(Message.class);
+    }
+    // zero subscribers
+    public void notSubscribedClientShouldNotReceiveMessage() {
+        raceResults.send(message);
+        
+        verify(clientA, never()).receive(message);
+        verify(clientB, never()).receive(message);
+    }
+    // one subscriber
+    public void subscribedClientShouldReceiveMessage() {
+        raceResults.addSubscriber(clientA);
+        raceResults.send(message);
+        
+        verify(clientA).receive(message);
+    }
+    // two subscribers
+    public void messageShouldBeSendToAllSubscribedClients() {
+        raceResults.addSubscriber(clientA);
+        raceResults.addSubscriber(clientB);
+        raceResults.send(message);
+        
+        verify(clientA).receive(message);
+        verify(clientB).receive(message);
+    }
+    // client subscribed more then once
+    public void shouldSendOnlyOneMessageToMultiSubscriber() {
+        raceResults.addSubscriber(clientA);
+        raceResults.addSubscriber(clientA);
+        raceResults.send(message);
+        
+        verify(clientA).receive(message);
+    }
 }
 \end{lstlisting}
 
@@ -301,6 +415,11 @@ Test nie przechodzi więc dopisujemy funkcjonalność do głównego programu.
 Po zmianie rodzaju kolekcji napisany test i poprzednie przechodzą.
 
 \begin{lstlisting}
+package rrs;
+
+import java.util.Collection;
+import java.util.HashSet;
+
 public class RaceResultsService { // zmiana rodzaju kolekcji
     private Collection<Client> clients = new HashSet<>();
     
@@ -322,13 +441,64 @@ public class RaceResultsService { // zmiana rodzaju kolekcji
 Do programu dopisujemy nową pustą metodę. Piszemy test który sprawdza czy usunięci klienci dostają wiadomości.
 
 \begin{lstlisting}
-// removed subscriber should not received messages
-public void unsubscribedClientShouldNotReceiveMessages() {
-    raceResults.addSubscriber(clientA);
-    raceResults.removeSubscriber(clientA);
-    raceResults.send(message);
+package rrs;
+
+import org.testng.annotations.*;
+import static org.mockito.Mockito.*;
+
+@Test
+public class RaceResultsServiceTest {
+    private RaceResultsService raceResults;
+    private Message message;
+    private Client clientA;
+    private Client clientB;
     
-    verify(clientA, never()).receive(message);
+    @BeforeMethod
+    public void setUp() {
+        raceResults = new RaceResultsService();
+        clientA = mock(Client.class);
+        clientB = mock(Client.class);
+        message = mock(Message.class);
+    }
+    // zero subscribers
+    public void notSubscribedClientShouldNotReceiveMessage() {
+        raceResults.send(message);
+        
+        verify(clientA, never()).receive(message);
+        verify(clientB, never()).receive(message);
+    }
+    // one subscriber
+    public void subscribedClientShouldReceiveMessage() {
+        raceResults.addSubscriber(clientA);
+        raceResults.send(message);
+        
+        verify(clientA).receive(message);
+    }
+    // two subscribers
+    public void messageShouldBeSendToAllSubscribedClients() {
+        raceResults.addSubscriber(clientA);
+        raceResults.addSubscriber(clientB);
+        raceResults.send(message);
+        
+        verify(clientA).receive(message);
+        verify(clientB).receive(message);
+    }
+    // client subscribed more then once
+    public void shouldSendOnlyOneMessageToMultiSubscriber() {
+        raceResults.addSubscriber(clientA);
+        raceResults.addSubscriber(clientA);
+        raceResults.send(message);
+        
+        verify(clientA).receive(message);
+    }
+    // removed subscriber should not received messages
+    public void unsubscribedClientShouldNotReceiveMessages() {
+        raceResults.addSubscriber(clientA);
+        raceResults.removeSubscriber(clientA);
+        raceResults.send(message);
+        
+        verify(clientA, never()).receive(message);
+    }
 }
 \end{lstlisting}
 
@@ -338,6 +508,11 @@ public void unsubscribedClientShouldNotReceiveMessages() {
 Test nie przechodzi więc zabieramy się do implementacji. Po poprawnej implementacji wszystkie testy powinny przechodzić.
 
 \begin{lstlisting}
+package rrs;
+
+import java.util.Collection;
+import java.util.HashSet;
+
 public class RaceResultsService {
     private Collection<Client> clients = new HashSet<>();
     
